@@ -1,24 +1,97 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { ShoppingBag, Loader, AlertCircle } from 'lucide-react';
+import { ShoppingBag, Loader, AlertCircle, PlusCircle } from 'lucide-react';
 
 const Productos = () => {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    nombre: '',
+    precio: '',
+    categoria: '',
+    descripcion: '',
+    imagen_url: ''
+  });
 
+  // Cargar productos al montar
   useEffect(() => {
     cargarProductos();
   }, []);
 
   const cargarProductos = async () => {
+    setLoading(true);
     try {
-      const data = await api.get('/productos'); 
-      setProductos(data);
+      const response = await api.get('/productos');
+      setProductos(response);
     } catch (err) {
+      console.error('Error cargando productos:', err);
       setError("No se pudo conectar con el servidor. ¿Está encendido?");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Manejar cambios en inputs del formulario
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  // Crear producto
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validación de campos obligatorios
+    if (!formData.nombre.trim() || !formData.precio || !formData.categoria.trim()) {
+      alert('Nombre, precio y categoría son obligatorios');
+      return;
+    }
+
+    // Verificar token
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Debes iniciar sesión para crear productos');
+      return;
+    }
+
+    try {
+      const payload = {
+        nombre: formData.nombre.trim(),
+        precio: Number(formData.precio),
+        categoria: formData.categoria.trim(),
+        descripcion: formData.descripcion.trim(),
+        imagen_url: formData.imagen_url.trim()
+      };
+
+      await api.post('/crear', payload);
+
+      // Reset formulario y cerrar
+      setShowForm(false);
+      setFormData({
+        nombre: '',
+        precio: '',
+        categoria: '',
+        descripcion: '',
+        imagen_url: ''
+      });
+
+      cargarProductos(); // refrescar lista
+    } catch (err) {
+      console.error('Error en POST:', err);
+
+      if (err.message?.includes('400')) {
+        alert('Error en los datos enviados. Revisa los campos.');
+      } else if (err.message?.includes('401')) {
+        alert('No estás autenticado. Por favor inicia sesión.');
+      } else if (err.message?.includes('403')) {
+        alert('No tienes permisos para crear productos.');
+      } else {
+        alert('Error al crear el producto');
+      }
     }
   };
 
@@ -41,10 +114,76 @@ const Productos = () => {
           <ShoppingBag className="text-blue-600" /> Inventario
         </h1>
 
-        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-          {productos.length} items
-        </span>
+        <div className="flex gap-4 items-center">
+          <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+            {productos?.length || 0} items
+          </span>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center gap-2"
+          >
+            <PlusCircle /> Crear Producto
+          </button>
+        </div>
       </header>
+
+      {/* Formulario */}
+      {showForm && (
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white p-6 rounded shadow mb-6 flex flex-col gap-4"
+        >
+          <input
+            type="text"
+            name="nombre"
+            placeholder="Nombre"
+            value={formData.nombre}
+            onChange={handleChange}
+            className="border p-2 rounded"
+            required
+          />
+          <input
+            type="number"
+            name="precio"
+            placeholder="Precio"
+            value={formData.precio}
+            onChange={handleChange}
+            className="border p-2 rounded"
+            required
+          />
+          <input
+            type="text"
+            name="categoria"
+            placeholder="Categoría"
+            value={formData.categoria}
+            onChange={handleChange}
+            className="border p-2 rounded"
+            required
+          />
+          <input
+            type="text"
+            name="descripcion"
+            placeholder="Descripción"
+            value={formData.descripcion}
+            onChange={handleChange}
+            className="border p-2 rounded"
+          />
+          <input
+            type="text"
+            name="imagen_url"
+            placeholder="URL Imagen"
+            value={formData.imagen_url}
+            onChange={handleChange}
+            className="border p-2 rounded"
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          >
+            Guardar
+          </button>
+        </form>
+      )}
 
       {/* Grid Responsivo */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -53,16 +192,14 @@ const Productos = () => {
             key={prod.id}
             className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-slate-100 overflow-hidden flex flex-col"
           >
-            {/* Imagen */}
             <div className="h-48 p-4 bg-white flex items-center justify-center border-b border-slate-50">
-              <img 
-                src={prod.imagen_url || "https://via.placeholder.com/150"} 
-                alt={prod.nombre} 
+              <img
+                src={prod.imagen_url || "https://via.placeholder.com/150"}
+                alt={prod.nombre}
                 className="max-h-full object-contain"
               />
             </div>
 
-            {/* Cuerpo */}
             <div className="p-4 flex-1 flex flex-col">
               <div className="flex justify-between items-start mb-2">
                 <h3
@@ -75,22 +212,10 @@ const Productos = () => {
                   ${prod.precio}
                 </span>
               </div>
-              
+
               <p className="text-slate-500 text-sm line-clamp-2 mb-4 flex-1">
                 {prod.descripcion || "Sin descripción disponible."}
               </p>
-
-              <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
-                <span className="text-xs font-medium text-slate-400">
-                  Stock:{" "}
-                  <span className={prod.stock < 10 ? "text-red-500 font-bold" : "text-slate-600"}>
-                    {prod.stock}
-                  </span>
-                </span>
-                <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                  Editar
-                </button>
-              </div>
             </div>
           </div>
         ))}
