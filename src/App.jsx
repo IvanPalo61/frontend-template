@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/layout/Layout";
-import Login from "./pages/LoginPage";
+import Login from "./pages/Login";
 import Productos from "./pages/Productos";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 
@@ -18,7 +18,7 @@ function App() {
     <BrowserRouter>
       <Routes>
 
-        // ruta publica
+    
         <Route path="/login" element={<Login />} />
 
         // ruta privada
