@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { ShoppingBag, Loader, AlertCircle, LogOut } from 'lucide-react';
+import { ShoppingBag, Loader, AlertCircle } from 'lucide-react';
 
 const Productos = () => {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     cargarProductos();
@@ -22,11 +20,6 @@ const Productos = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("token"); // eliminar sesión
-    navigate("/login"); // redirigir al login
   };
 
   if (loading) return (
@@ -48,19 +41,9 @@ const Productos = () => {
           <ShoppingBag className="text-blue-600" /> Inventario
         </h1>
 
-        <div className="flex items-center gap-4">
-          <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-            {productos.length} items
-          </span>
-
-          {/* Botón salir */}
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
-          >
-            <LogOut size={18} /> Salir
-          </button>
-        </div>
+        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+          {productos.length} items
+        </span>
       </header>
 
       {/* Grid Responsivo */}
