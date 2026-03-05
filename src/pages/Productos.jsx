@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { ShoppingBag, Loader, AlertCircle, PlusCircle } from 'lucide-react';
+import { ShoppingBag, Loader, AlertCircle, PlusCircle, CheckCircle } from 'lucide-react';
 
 const Productos = () => {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [successMessage, setSuccessMessage] = useState(null);
+
   const [formData, setFormData] = useState({
     nombre: '',
     precio: '',
@@ -15,7 +17,6 @@ const Productos = () => {
     imagen_url: ''
   });
 
-  // Cargar productos al montar
   useEffect(() => {
     cargarProductos();
   }, []);
@@ -33,7 +34,6 @@ const Productos = () => {
     }
   };
 
-  // Manejar cambios en inputs del formulario
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -41,17 +41,14 @@ const Productos = () => {
     });
   };
 
-  // Crear producto
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validación de campos obligatorios
     if (!formData.nombre.trim() || !formData.precio || !formData.categoria.trim()) {
       alert('Nombre, precio y categoría son obligatorios');
       return;
     }
 
-    // Verificar token
     const token = localStorage.getItem('token');
     if (!token) {
       alert('Debes iniciar sesión para crear productos');
@@ -67,9 +64,17 @@ const Productos = () => {
         imagen_url: formData.imagen_url.trim()
       };
 
-      await api.post('/crear', payload);
+      const response = await api.post('/productos/crear', payload);
 
-      // Reset formulario y cerrar
+      // Mostrar mensaje éxito
+      setSuccessMessage(response.message || "Producto creado correctamente");
+
+      // Ocultar mensaje después de 3 segundos
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+
+      // Reset formulario
       setShowForm(false);
       setFormData({
         nombre: '',
@@ -79,7 +84,8 @@ const Productos = () => {
         imagen_url: ''
       });
 
-      cargarProductos(); // refrescar lista
+      cargarProductos();
+
     } catch (err) {
       console.error('Error en POST:', err);
 
@@ -95,17 +101,21 @@ const Productos = () => {
     }
   };
 
-  if (loading) return (
-    <div className="flex justify-center items-center h-64">
-      <Loader className="animate-spin text-blue-600" size={48} />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader className="animate-spin text-blue-600" size={48} />
+      </div>
+    );
+  }
 
-  if (error) return (
-    <div className="bg-red-100 text-red-700 p-4 rounded-lg flex items-center gap-2">
-      <AlertCircle /> {error}
-    </div>
-  );
+  if (error) {
+    return (
+      <div className="bg-red-100 text-red-700 p-4 rounded-lg flex items-center gap-2">
+        <AlertCircle /> {error}
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -127,7 +137,14 @@ const Productos = () => {
         </div>
       </header>
 
-      {/* Formulario */}
+      {/* 🔥 ALERTA DE ÉXITO */}
+      {successMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 flex items-center gap-2">
+          <CheckCircle className="text-green-600" size={20} />
+          {successMessage}
+        </div>
+      )}
+
       {showForm && (
         <form
           onSubmit={handleSubmit}
@@ -185,7 +202,6 @@ const Productos = () => {
         </form>
       )}
 
-      {/* Grid Responsivo */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {productos.map((prod) => (
           <div
@@ -202,10 +218,7 @@ const Productos = () => {
 
             <div className="p-4 flex-1 flex flex-col">
               <div className="flex justify-between items-start mb-2">
-                <h3
-                  className="font-bold text-lg text-slate-800 line-clamp-1"
-                  title={prod.nombre}
-                >
+                <h3 className="font-bold text-lg text-slate-800 line-clamp-1">
                   {prod.nombre}
                 </h3>
                 <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-bold">
