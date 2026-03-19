@@ -14,7 +14,8 @@ const Productos = () => {
     precio: '',
     categoria: '',
     descripcion: '',
-    imagen_url: ''
+    imagen_url: '',
+    youtube_url: '' // ✅ TODO usa youtube_url
   });
 
   useEffect(() => {
@@ -61,27 +62,26 @@ const Productos = () => {
         precio: Number(formData.precio),
         categoria: formData.categoria.trim(),
         descripcion: formData.descripcion.trim(),
-        imagen_url: formData.imagen_url.trim()
+        imagen_url: formData.imagen_url.trim(),
+        youtube_url: formData.youtube_url.trim() // ✅ correcto
       };
 
       const response = await api.post('/productos/crear', payload);
 
-      // Mostrar mensaje éxito
       setSuccessMessage(response.message || "Producto creado correctamente");
 
-      // Ocultar mensaje después de 3 segundos
       setTimeout(() => {
         setSuccessMessage(null);
       }, 3000);
 
-      // Reset formulario
       setShowForm(false);
       setFormData({
         nombre: '',
         precio: '',
         categoria: '',
         descripcion: '',
-        imagen_url: ''
+        imagen_url: '',
+        youtube_url: ''
       });
 
       cargarProductos();
@@ -137,7 +137,6 @@ const Productos = () => {
         </div>
       </header>
 
-      {/* 🔥 ALERTA DE ÉXITO */}
       {successMessage && (
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 flex items-center gap-2">
           <CheckCircle className="text-green-600" size={20} />
@@ -193,6 +192,15 @@ const Productos = () => {
             onChange={handleChange}
             className="border p-2 rounded"
           />
+          <input
+            type="text"
+            name="youtube_url"
+            placeholder="URL de YouTube"
+            value={formData.youtube_url} // ✅ FIX IMPORTANTE
+            onChange={handleChange}
+            className="border p-2 rounded"
+          />
+
           <button
             type="submit"
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
@@ -208,12 +216,26 @@ const Productos = () => {
             key={prod.id}
             className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-slate-100 overflow-hidden flex flex-col"
           >
+
+            {/* 🔥 VIDEO O IMAGEN */}
             <div className="h-48 p-4 bg-white flex items-center justify-center border-b border-slate-50">
-              <img
-                src={prod.imagen_url || "https://via.placeholder.com/150"}
-                alt={prod.nombre}
-                className="max-h-full object-contain"
-              />
+              {prod.youtube_url ? (
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={prod.youtube_url.replace("watch?v=", "embed/")}
+                  title="YouTube video player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              ) : (
+                <img
+                  src={prod.imagen_url || "https://via.placeholder.com/150"}
+                  alt={prod.nombre}
+                  className="max-h-full object-contain"
+                />
+              )}
             </div>
 
             <div className="p-4 flex-1 flex flex-col">
@@ -230,6 +252,7 @@ const Productos = () => {
                 {prod.descripcion || "Sin descripción disponible."}
               </p>
             </div>
+
           </div>
         ))}
       </div>
