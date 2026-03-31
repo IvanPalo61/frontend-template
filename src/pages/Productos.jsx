@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { ShoppingBag, Loader, AlertCircle, PlusCircle, CheckCircle } from 'lucide-react';
+import {
+  ShoppingBag,
+  Loader,
+  AlertCircle,
+  PlusCircle,
+  CheckCircle,
+  MessageCircle,
+  Twitter,
+  Share2
+} from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -14,6 +23,24 @@ L.Icon.Default.mergeOptions({
   iconUrl,
   shadowUrl,
 });
+
+const compartirWhatsApp = (producto) => {
+  // 1. Redactamos la carta con los datos reales de la BD
+  const mensaje = `¡Mira lo que encontré en la tienda!\n\n${producto.nombre}\n$${producto.precio}\n\n¿Te interesa?`;
+
+  // 2. Empacamos el mensaje para que la URL no explote
+  const textoCodificado = encodeURIComponent(mensaje);
+
+  // 3. Enviamos al usuario a la oficina de correos (Abre pestaña nueva)
+  window.open(`https://api.whatsapp.com/send?text=${textoCodificado}`, '_blank');
+};
+
+const compartirTwitter = (producto) => {
+  const mensaje = `Increíble producto en la tienda: ${producto.nombre} por solo $${producto.precio}. ¡Tienen que verlo! #InventarioPro`;
+  const textoCodificado = encodeURIComponent(mensaje);
+
+  window.open(`https://twitter.com/intent/tweet?text=${textoCodificado}`, '_blank');
+};
 
 const Productos = () => {
   const [productos, setProductos] = useState([]);
@@ -39,23 +66,24 @@ const Productos = () => {
 
   const cargarProductos = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await api.get('/productos');
-     
+      // response.data se asume que es el array de productos; si tu API devuelve otra estructura, ajusta aquí
       setProductos(response.data ?? response);
     } catch (err) {
       console.error('Error cargando productos:', err);
-      setError("No se pudo conectar con el servidor. ¿Está encendido?");
+      setError('No se pudo conectar con el servidor. ¿Está encendido?');
     } finally {
       setLoading(false);
     }
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value
-    });
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -86,7 +114,7 @@ const Productos = () => {
 
       const response = await api.post('/productos/crear', payload);
 
-      setSuccessMessage(response.data?.message || response.message || "Producto creado correctamente");
+      setSuccessMessage(response.data?.message || response.message || 'Producto creado correctamente');
 
       setTimeout(() => {
         setSuccessMessage(null);
@@ -105,16 +133,15 @@ const Productos = () => {
       });
 
       cargarProductos();
-
     } catch (err) {
       console.error('Error en POST:', err);
 
-      const msg = err?.response?.status || err?.message || '';
-      if (String(msg).includes('400')) {
+      const status = err?.response?.status ?? '';
+      if (String(status).includes('400')) {
         alert('Error en los datos enviados. Revisa los campos.');
-      } else if (String(msg).includes('401')) {
+      } else if (String(status).includes('401')) {
         alert('No estás autenticado. Por favor inicia sesión.');
-      } else if (String(msg).includes('403')) {
+      } else if (String(status).includes('403')) {
         alert('No tienes permisos para crear productos.');
       } else {
         alert('Error al crear el producto');
@@ -122,7 +149,6 @@ const Productos = () => {
     }
   };
 
-  
   const parseCoord = (val, fallback) => {
     const n = parseFloat(val);
     return isNaN(n) ? fallback : n;
@@ -172,10 +198,7 @@ const Productos = () => {
       )}
 
       {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white p-6 rounded shadow mb-6 flex flex-col gap-4"
-        >
+        <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow mb-6 flex flex-col gap-4">
           <input
             type="text"
             name="nombre"
@@ -243,10 +266,7 @@ const Productos = () => {
             onChange={handleChange}
             className="border p-2 rounded"
           />
-          <button
-            type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-          >
+          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
             Guardar
           </button>
         </form>
@@ -259,7 +279,6 @@ const Productos = () => {
           const lat = parseCoord(prod.latitud, defaultLat);
           const lng = parseCoord(prod.longitud, defaultLng);
 
-         
           const getYoutubeEmbed = (url) => {
             if (!url) return null;
             if (url.includes('watch?v=')) return url.replace('watch?v=', 'embed/');
@@ -284,7 +303,7 @@ const Productos = () => {
                   ></iframe>
                 ) : (
                   <img
-                    src={prod.imagen_url || "https://via.placeholder.com/150"}
+                    src={prod.imagen_url || 'https://via.placeholder.com/150'}
                     alt={prod.nombre}
                     className="max-h-full object-contain"
                   />
@@ -293,26 +312,39 @@ const Productos = () => {
 
               <div className="p-4 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-bold text-lg text-slate-800 line-clamp-1">
-                    {prod.nombre}
-                  </h3>
-                  <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-bold">
-                    ${prod.precio}
-                  </span>
+                  <h3 className="font-bold text-lg text-slate-800 line-clamp-1">{prod.nombre}</h3>
+                  <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-bold">${prod.precio}</span>
                 </div>
 
                 <p className="text-slate-500 text-sm line-clamp-2 mb-4 flex-1">
-                  {prod.descripcion || "Sin descripción disponible."}
+                  {prod.descripcion || 'Sin descripción disponible.'}
                 </p>
               </div>
 
+              <div className="pt-3 flex justify-between items-center bg-slate-50 -mx-4 -mb-4 px-4 py-3 rounded-b-xl border-t border-slate-100">
+                <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+                  <Share2 size={14} /> Compartir:
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => compartirWhatsApp(prod)}
+                    className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full transition shadow-sm"
+                    title="Compartir en WhatsApp"
+                  >
+                    <MessageCircle size={16} />
+                  </button>
+                  <button
+                    onClick={() => compartirTwitter(prod)}
+                    className="bg-black hover:bg-slate-800 text-white p-2 rounded-full transition shadow-sm"
+                    title="Compartir en X (Twitter)"
+                  >
+                    <Twitter size={16} />
+                  </button>
+                </div>
+              </div>
+
               <div className="h-48 w-full border-t border-slate-100 z-0 relative">
-               
-                <MapContainer
-                  center={[lat, lng]}
-                  zoom={13}
-                  style={{ height: '100%', width: '100%', zIndex: 0 }}
-                >
+                <MapContainer center={[lat, lng]} zoom={13} style={{ height: '100%', width: '100%', zIndex: 0 }}>
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
