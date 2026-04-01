@@ -1,4 +1,4 @@
-const API_URL= "https://backend-api-3-b73e.onrender.com/api" |  "http://localhost:4000/api"; // base api general
+const API_URL= "https://backend-api-3-b73e.onrender.com/api"; // base api general
 
 export const api = {
   get: async (endpoint) => {
